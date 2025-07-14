@@ -13,7 +13,7 @@
  *
  * This value should be set to your defined length
  */
-#define LED_CFG_COUNT                 20
+#define LED_CFG_COUNT                 16
 
 /**
  * \brief           Number of bytes for one LED color description
@@ -25,11 +25,11 @@
  * \brief           Defines size of raw transmission leds in units of "data-for-leds"
  * \note            `1 unit` represents `30us` at `800 kHz and 24-bit of LED data (RGB)`
  *                      or `40us` at ˙800 kHz and 32-bit of LED data (RGBW)`
- * 
+ *
  * Based on the value:
  * - Greater it is, less frequent are DMA interrupts, but interrupt handling takes potentially more time
  * - Greater it is, larger is the raw dma buffer as it has to accomodate for `2*value` number of elements for led's data
- * 
+ *
  * \note            Values should be greater-or-equal than `1` and (advise) not higher than `8˙
  * \note            Value set to `6` means DMA TC or HT interrupts are triggered at each `180us at 800kHz tim update rate for RGB leds`
  */
@@ -38,15 +38,15 @@
 /**
  * \brief           Defines minimum number of "1-led-transmission-time" blocks
  *                  to send logical `0` to the bus, indicating reset before data transmission starts.
- * 
+ *
  * This is a must to generate reset value.
  * As per datasheet, different devices require different min reset time, normally min `280us`,
  * that represents minimum `10 led cycles`
- * 
+ *
  * \note            Few conditions apply to the value and all must be a pass
  *                      - Must be greater than `0`
  *                      - Must be set to a value to support minimum reset time required by the driver
- * 
+ *
  *                  Further advices
  *                      - Set it to `2*LED_CFG_LEDS_PER_DMA_IRQ` or higher
  *                      - Set it as multiplier of \ref LED_CFG_LEDS_PER_DMA_IRQ
@@ -63,8 +63,8 @@
 
 /**
  * \brief           Application array to store led colors for application use case
- *                      Data in format R,G,B,R,G,B,... 
- * 
+ *                      Data in format R,G,B,R,G,B,...
+ *
  * Array used by user application to store data to
  */
 static uint8_t leds_color_data[LED_CFG_BYTES_PER_LED * LED_CFG_COUNT];
@@ -72,12 +72,12 @@ static uint8_t leds_color_data[LED_CFG_BYTES_PER_LED * LED_CFG_COUNT];
 /**
  * \brief           This buffer acts as raw buffer for DMA to transfer data from memory to timer compare
  * \note            DMA must have access to this variable (memory location)
- * 
+ *
  * It is a multi-dimentional array:
  * - First part represents 2 parts, one before half-transfer, second after half-transfer complete
  * - Second part is number of LEDs to transmit before DMA HT/TC interrupts get fired
  * - Third part are entries for raw timer compare register to send logical 1 and 0 to the bus
- * 
+ *
  * Type of variable should be unsigned 32-bit, to satisfy TIM2 that is 32-bit timer
  */
 static uint32_t dma_buffer[(2) * (LED_CFG_LEDS_PER_DMA_IRQ) * (LED_CFG_BYTES_PER_LED * 8)];
@@ -95,31 +95,9 @@ static uint32_t dma_buffer[(2) * (LED_CFG_LEDS_PER_DMA_IRQ) * (LED_CFG_BYTES_PER
 /* Size of (in bytes) of one led memory in DMA buffer */
 #define DMA_BUFF_ELE_LED_SIZEOF  ((size_t)(sizeof(dma_buffer[0]) * DMA_BUFF_ELE_LED_LEN))
 
-#define USE_DEBUG_PINS           0
+#define USE_DEBUG_PINS           1
 
 /* Pin configuration goes here */
-#if 0
-#define LED_GPIO_PORT                             GPIOA
-#define LED_GPIO_PIN                              LL_GPIO_PIN_3
-#define LED_GPIO_CLK_EN                           LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA)
-#define LED_GPIO_PIN_TIM_AF                       LL_GPIO_AF_2
-#define LED_TIM                                   TIM2
-#define LED_TIM_CLK_EN                            LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM2)
-#define LED_TIM_CHANNEL                           LL_TIM_CHANNEL_CH4
-#define LED_TIM_CHANNEL_DMA                       DMA2
-#define LED_TIM_CHANNEL_DMA_CLK_EN                LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA2)
-#define LED_TIM_CHANNEL_DMA_CHANNEL               LL_DMA_CHANNEL_5
-#define LED_TIM_CHANNEL_DMA_CHANNEL_REQ           LL_DMAMUX_REQ_TIM2_CH4
-#define LED_TIM_CHANNEL_DATA_REG                  &LED_TIM->CCR4
-#define LED_TIM_CHANNEL_DMA_IRQn                  DMA1_Ch4_7_DMA2_Ch1_5_DMAMUX1_OVR_IRQn
-#define LED_TIM_CHANNEL_DMA_IRQHandler            DMA1_Ch4_7_DMA2_Ch1_5_DMAMUX1_OVR_IRQHandler
-#define LED_TIM_CHANNEL_DMA_CHANNEL_IS_ACTIVE_HT  LL_DMA_IsActiveFlag_HT5(LED_TIM_CHANNEL_DMA)
-#define LED_TIM_CHANNEL_DMA_CHANNEL_IS_ACTIVE_TC  LL_DMA_IsActiveFlag_TC5(LED_TIM_CHANNEL_DMA)
-#define LED_TIM_CHANNEL_DMA_CHANNEL_CLEAR_FLAG_HT LL_DMA_ClearFlag_HT5(LED_TIM_CHANNEL_DMA)
-#define LED_TIM_CHANNEL_DMA_CHANNEL_CLEAR_FLAG_TC LL_DMA_ClearFlag_TC5(LED_TIM_CHANNEL_DMA)
-#define LED_TIM_CHANNEL_ENABLE_DMA_REQ            LL_TIM_EnableDMAReq_CC4(LED_TIM)
-#define LED_TIM_CHANNEL_SET_COMPARE(val)          LL_TIM_OC_SetCompareCH4(LED_TIM, (val))
-#else
 #define LED_GPIO_PORT                             GPIOA
 #define LED_GPIO_PIN                              LL_GPIO_PIN_15
 #define LED_GPIO_CLK_EN                           LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA)
@@ -140,7 +118,6 @@ static uint32_t dma_buffer[(2) * (LED_CFG_LEDS_PER_DMA_IRQ) * (LED_CFG_BYTES_PER
 #define LED_TIM_CHANNEL_DMA_CHANNEL_CLEAR_FLAG_TC LL_DMA_ClearFlag_TC5(LED_TIM_CHANNEL_DMA)
 #define LED_TIM_CHANNEL_ENABLE_DMA_REQ            LL_TIM_EnableDMAReq_CC1(LED_TIM)
 #define LED_TIM_CHANNEL_SET_COMPARE(val)          LL_TIM_OC_SetCompareCH1(LED_TIM, (val))
-#endif
 
 /* Control variables for transfer */
 static volatile uint8_t is_updating = 0;    /* Set to `1` when update is in progress */
@@ -155,7 +132,7 @@ int16_t fade_value;
 /* Start data transfer */
 static uint8_t led_start_transfer(void);
 void SystemClock_Config(void);
-static void tim2_init(void);
+static void tim_init(void);
 static void gpio_init(void);
 static void led_fill_led_pwm_data(size_t ledx, uint32_t* ptr);
 
@@ -177,31 +154,6 @@ static void led_fill_led_pwm_data(size_t ledx, uint32_t* ptr);
 #endif
 
 /**
- * \brief           Calculate Bezier curve (ease-in, ease-out) for input value
- * 
- * \note            This is experimental function, bezier is not approproate curve
- *                  to fade-in-out LEDs
- *
- * \param[in]       t: Input value between 0 and 1, indicating start to stop position
- * \return          Value between 0 and 1, respecting minimum and maximum
- */
-float
-bezier_calc(float t) {
-    return t * t * (3.0f - 2.0f * t);
-}
-
-/**
- * \brief           Calculate cub of an input for lightning approx curve
- * 
- * \param[in]       t: Input value between 0 and 1, indicating start to stop position
- * \return          Value between 0 and 1, respecting minimum and maximum
- */
-float
-quad_calc(float t) {
-    return t * t * t * t;
-}
-
-/**
  * \brief           The application entry point
  */
 int
@@ -216,7 +168,7 @@ main(void) {
     SystemClock_Config();
 
     /* Initialize all configured peripherals */
-    tim2_init();
+    tim_init();
     gpio_init();
 
     /* Set up the first leds with dummy color */
@@ -258,11 +210,11 @@ led_update_sequence(uint8_t tc) {
     }
 
     /*
-     * led_cycles_cnt variable represents minimum number of 
+     * led_cycles_cnt variable represents minimum number of
      * led cycles that will be transmitted on the bus.
-     * 
+     *
      * It is set to non-0 value after transfer and gets increased in each interrupt.
-     * 
+     *
      * Interrupts are triggered (TC or HT) when DMA transfers `LED_CFG_LEDS_PER_DMA_IRQ` led cycles of data elements
      */
     led_cycles_cnt += LED_CFG_LEDS_PER_DMA_IRQ;
@@ -319,7 +271,7 @@ led_update_sequence(uint8_t tc) {
         /*
          * This is post-reset and must be set to at least 1 level in size
          * and sends all zeros to the leds.
-         * 
+         *
          * Manually reset array to all zeros using memset, but only if it has not been set already
          * (to not waste CPU resources for small MCUs)
          */
@@ -342,7 +294,7 @@ led_update_sequence(uint8_t tc) {
         LL_DMA_DisableChannel(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL);
         LL_TIM_CC_DisableChannel(LED_TIM, LED_TIM_CHANNEL);
         is_updating = 0;
-        DBG_PIN_UPDATING_LOW;
+//        DBG_PIN_UPDATING_LOW;
     }
     DBG_PIN_IRQ_LOW;
 }
@@ -372,23 +324,21 @@ LED_TIM_CHANNEL_DMA_IRQHandler(void) {
  */
 static void
 led_fill_led_pwm_data(size_t ledx, uint32_t* ptr) {
-    const uint32_t arr = TIM2->ARR + 1;
+    const uint32_t arr = LED_TIM->ARR + 1;
+    const uint32_t pulse_low  = (1 * arr / 4) - 1;
     const uint32_t pulse_high = (3 * arr / 4) - 1;
-    const uint32_t pulse_low = (1 * arr / 4) - 1;
 
     DBG_PIN_DATA_FILL_HIGH;
     if (ledx < LED_CFG_COUNT) {
         uint32_t r, g, b;
 
-        r = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 0] * (uint32_t)brightness)
-                      / (uint32_t)0xFF);
-        g = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 1] * (uint32_t)brightness)
-                      / (uint32_t)0xFF);
-        b = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 2] * (uint32_t)brightness)
-                      / (uint32_t)0xFF);
+//        r = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 0] * (uint32_t)brightness) / (uint32_t)0xFF);
+        r = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 0] * (uint32_t)brightness) / (uint32_t)0xFF);
+        g = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 1] * (uint32_t)brightness) / (uint32_t)0xFF);
+        b = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 2] * (uint32_t)brightness) / (uint32_t)0xFF);
         for (size_t i = 0; i < 8; i++) {
-            ptr[i] = (g & (1 << (7 - i))) ? pulse_high : pulse_low;
-            ptr[8 + i] = (r & (1 << (7 - i))) ? pulse_high : pulse_low;
+            ptr[     i] = (g & (1 << (7 - i))) ? pulse_high : pulse_low;
+            ptr[ 8 + i] = (r & (1 << (7 - i))) ? pulse_high : pulse_low;
             ptr[16 + i] = (b & (1 << (7 - i))) ? pulse_high : pulse_low;
         }
     }
@@ -401,6 +351,7 @@ led_fill_led_pwm_data(size_t ledx, uint32_t* ptr) {
  */
 static uint8_t
 led_start_transfer(void) {
+    DBG_PIN_UPDATING_HIGH;
     if (is_updating) {
         return 0;
     }
@@ -442,17 +393,18 @@ led_start_transfer(void) {
     LL_TIM_CC_EnableChannel(LED_TIM, LED_TIM_CHANNEL);
     LL_TIM_EnableCounter(LED_TIM);
 
-    DBG_PIN_UPDATING_HIGH;
+//    DBG_PIN_UPDATING_HIGH;
+    DBG_PIN_UPDATING_LOW;
 
     /* All the rest is happening in DMA interrupt from now on */
     return 1;
 }
 
 /**
- * \brief           TIM2 Initialization Function
+ * \brief           TIM Initialization Function
  */
 static void
-tim2_init(void) {
+tim_init(void) {
     LL_TIM_InitTypeDef TIM_InitStruct = {0};
     LL_TIM_OC_InitTypeDef TIM_OC_InitStruct = {0};
     LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -491,9 +443,9 @@ tim2_init(void) {
     LL_DMA_SetMemorySize(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, LL_DMA_MDATAALIGN_WORD);
     LL_DMA_SetPeriphAddress(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, (uint32_t)LED_TIM_CHANNEL_DATA_REG);
 
-    /* 
+    /*
      * Set basic timer settings
-     * 
+     *
      * - Set no prescaler for max resolution
      * - Set autoreload for 800kHz refresh rate (64 MHz TIM2 kernel clock)
      */
@@ -570,6 +522,7 @@ SysTick_Handler(void) {
         } else if (fade_value < 0) {
             fade_value = 0;
             fade_step = -fade_step;
+            color_counter++;
         }
 
         /* Check if we need to change the color */
@@ -579,11 +532,10 @@ SysTick_Handler(void) {
                 leds_color_data[i * LED_CFG_BYTES_PER_LED + 1] = color_counter & 0x02 ? 0xFF : 0x00;
                 leds_color_data[i * LED_CFG_BYTES_PER_LED + 2] = color_counter & 0x04 ? 0xFF : 0x00;
             }
-            color_counter++;
         }
 
         /* Calculate new brightness */
-        brightness = (uint8_t)(quad_calc((float)fade_value / (float)0xFF) * (float)0x3F);
+        brightness = fade_value * fade_value / 0xFF;
 
         /* Start data transfer in non-blocking mode */
         led_start_transfer();

@@ -95,3 +95,27 @@ Examples can be used as reference code to implement your own LED driver with you
 | STM32 family | Board name        | TIM & CH   | GPIO   | DMA settings                    |
 |--------------|-------------------|------------|--------|---------------------------------|
 | STM32G0xx    | `NUCLEO-G0B1RE`   | `TIM2 CH4` | `PA3`  | *`DMA2`, `Channel 5`*           |
+
+## Update Notes
+
+Develpment using [Adafruit NeoPixel Ring 16](https://www.adafruit.com/product/1463).
+
+### Observed State
+
+Code originally from repo only drove green, blue, and green-blue LED patterns and not to full brightness.
+
+### Functinal Updates
+
+Support more generic setup.  Remove unneccessary explicit identifications of `TIM2`.
+
+Remove unused function `bezier_calc()`.
+
+Move the increment of `color_counter`.  It was being incremented twice (`fade_value == 0` twice, when `fade_value += fade_step` once 1+-1=0 and then once more when 0+-1=-1) and caused even values of `color_counter` to not be displayed.
+
+Remove `quad_calc()` and replace with simpler proportional square root value.
+
+Moving DBG_PIN_UPDATING to only cover the preparation logic to better represent bandwidth consumed by non-interrupt code.
+
+### Todo
+
+Move to pins, timers, and DMA channels and DMAMUX that exist on less-featured STM32 micros.
