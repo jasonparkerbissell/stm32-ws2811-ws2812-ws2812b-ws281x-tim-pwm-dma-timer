@@ -333,9 +333,14 @@ led_fill_led_pwm_data(size_t ledx, uint32_t* ptr) {
         uint32_t r, g, b;
 
 //        r = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 0] * (uint32_t)brightness) / (uint32_t)0xFF);
-        r = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 0] * (uint32_t)brightness) / (uint32_t)0xFF);
-        g = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 1] * (uint32_t)brightness) / (uint32_t)0xFF);
-        b = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 2] * (uint32_t)brightness) / (uint32_t)0xFF);
+//        g = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 1] * (uint32_t)brightness) / (uint32_t)0xFF);
+//        b = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 2] * (uint32_t)brightness) / (uint32_t)0xFF);
+//        r = leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 0];
+//        g = leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 1];
+//        b = leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 2];
+        r = color_counter & 0x01 ? brightness : 0x00;
+        g = color_counter & 0x02 ? brightness : 0x00;
+        b = color_counter & 0x04 ? brightness : 0x00;
         for (size_t i = 0; i < 8; i++) {
             ptr[     i] = (g & (1 << (7 - i))) ? pulse_high : pulse_low;
             ptr[ 8 + i] = (r & (1 << (7 - i))) ? pulse_high : pulse_low;
@@ -525,17 +530,17 @@ SysTick_Handler(void) {
             color_counter++;
         }
 
-        /* Check if we need to change the color */
-        if (fade_value == 0) {
-            for (size_t i = 0; i < LED_CFG_COUNT; ++i) {
-                leds_color_data[i * LED_CFG_BYTES_PER_LED + 0] = color_counter & 0x01 ? 0xFF : 0x00;
-                leds_color_data[i * LED_CFG_BYTES_PER_LED + 1] = color_counter & 0x02 ? 0xFF : 0x00;
-                leds_color_data[i * LED_CFG_BYTES_PER_LED + 2] = color_counter & 0x04 ? 0xFF : 0x00;
-            }
-        }
-
         /* Calculate new brightness */
         brightness = fade_value * fade_value / 0xFF;
+
+        /* Check if we need to change the color */
+//        if (fade_value == 0) {
+//            for (size_t i = 0; i < LED_CFG_COUNT; ++i) {
+//                leds_color_data[i * LED_CFG_BYTES_PER_LED + 0] = color_counter & 0x01 ? brightness : 0x00;
+//                leds_color_data[i * LED_CFG_BYTES_PER_LED + 1] = color_counter & 0x02 ? brightness : 0x00;
+//                leds_color_data[i * LED_CFG_BYTES_PER_LED + 2] = color_counter & 0x04 ? brightness : 0x00;
+//            }
+//        }
 
         /* Start data transfer in non-blocking mode */
         led_start_transfer();
