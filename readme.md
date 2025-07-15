@@ -118,4 +118,4 @@ Moving DBG_PIN_UPDATING to only cover the preparation logic to better represent 
 
 ### Todo
 
-Move to pins, timers, and DMA channels and DMAMUX that exist on less-featured STM32 micros.
+Move to pins, timers, and DMA channels and DMAMUX that exist on less-featured STM32 micros.  For example, STM32G030/050/070 only have DMA1 and STM32G030 is limited to 5 channels.

@@ -74,11 +74,11 @@ static uint8_t leds_color_data[LED_CFG_BYTES_PER_LED * LED_CFG_COUNT];
  * \note            DMA must have access to this variable (memory location)
  *
  * It is a multi-dimentional array:
- * - First part represents 2 parts, one before half-transfer, second after half-transfer complete
+ * - First part represents 2 parts- one before half transfer; two after half transfer before transfer complete;
  * - Second part is number of LEDs to transmit before DMA HT/TC interrupts get fired
  * - Third part are entries for raw timer compare register to send logical 1 and 0 to the bus
  *
- * Type of variable should be unsigned 32-bit, to satisfy TIM2 that is 32-bit timer
+ * Type of variable should be unsigned 32-bit, to satisfy TIM that is 32-bit timer
  */
 static uint32_t dma_buffer[(2) * (LED_CFG_LEDS_PER_DMA_IRQ) * (LED_CFG_BYTES_PER_LED * 8)];
 
@@ -197,13 +197,12 @@ main(void) {
 
 /**
  * \brief           Update sequence function,
- *                  called on each DMA transfer complete or half-transfer complete events
+ *                  called on each DMA half transfer or transfer complete complete event
  * \param[in]       tc: Set to `1` when function is called from DMA TC event, `0` when from HT event
  */
 static void
 led_update_sequence(uint8_t tc) {
     DBG_PIN_IRQ_HIGH;
-    tc = tc ? 1 : 0;
     if (!is_updating) {
         DBG_PIN_IRQ_LOW;
         return;
@@ -294,13 +293,13 @@ led_update_sequence(uint8_t tc) {
         LL_DMA_DisableChannel(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL);
         LL_TIM_CC_DisableChannel(LED_TIM, LED_TIM_CHANNEL);
         is_updating = 0;
-//        DBG_PIN_UPDATING_LOW;
+        DBG_PIN_UPDATING_LOW;
     }
     DBG_PIN_IRQ_LOW;
 }
 
 /**
- * \brief           DMA2 channel 5 interrupt handler
+ * \brief           DMA channel interrupt handler
  */
 void
 LED_TIM_CHANNEL_DMA_IRQHandler(void) {
@@ -335,12 +334,12 @@ led_fill_led_pwm_data(size_t ledx, uint32_t* ptr) {
 //        r = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 0] * (uint32_t)brightness) / (uint32_t)0xFF);
 //        g = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 1] * (uint32_t)brightness) / (uint32_t)0xFF);
 //        b = (uint8_t)(((uint32_t)leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 2] * (uint32_t)brightness) / (uint32_t)0xFF);
-//        r = leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 0];
-//        g = leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 1];
-//        b = leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 2];
-        r = color_counter & 0x01 ? brightness : 0x00;
-        g = color_counter & 0x02 ? brightness : 0x00;
-        b = color_counter & 0x04 ? brightness : 0x00;
+//        r = leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 0] & brightness;
+//        g = leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 1] & brightness;
+//        b = leds_color_data[ledx * LED_CFG_BYTES_PER_LED + 2] & brightness;
+        r = (/*ledx + */color_counter) & 0x01 ? brightness : 0x00;
+        g = (/*ledx + */color_counter) & 0x02 ? brightness : 0x00;
+        b = (/*ledx + */color_counter) & 0x04 ? brightness : 0x00;
         for (size_t i = 0; i < 8; i++) {
             ptr[     i] = (g & (1 << (7 - i))) ? pulse_high : pulse_low;
             ptr[ 8 + i] = (r & (1 << (7 - i))) ? pulse_high : pulse_low;
@@ -388,8 +387,8 @@ led_start_transfer(void) {
     LL_DMA_SetDataLength(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, DMA_BUFF_ELE_LEN);
 
     /* Clear flags, enable interrupts */
-    LL_DMA_ClearFlag_TC5(LED_TIM_CHANNEL_DMA);
-    LL_DMA_ClearFlag_HT5(LED_TIM_CHANNEL_DMA);
+    LED_TIM_CHANNEL_DMA_CHANNEL_CLEAR_FLAG_TC;
+    LED_TIM_CHANNEL_DMA_CHANNEL_CLEAR_FLAG_HT;
     LL_DMA_EnableIT_TC(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL);
     LL_DMA_EnableIT_HT(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL);
 
@@ -397,9 +396,6 @@ led_start_transfer(void) {
     LL_DMA_EnableChannel(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL);
     LL_TIM_CC_EnableChannel(LED_TIM, LED_TIM_CHANNEL);
     LL_TIM_EnableCounter(LED_TIM);
-
-//    DBG_PIN_UPDATING_HIGH;
-    DBG_PIN_UPDATING_LOW;
 
     /* All the rest is happening in DMA interrupt from now on */
     return 1;
@@ -452,7 +448,7 @@ tim_init(void) {
      * Set basic timer settings
      *
      * - Set no prescaler for max resolution
-     * - Set autoreload for 800kHz refresh rate (64 MHz TIM2 kernel clock)
+     * - Set autoreload for 800kHz refresh rate (64 MHz TIM kernel clock)
      */
     TIM_InitStruct.Prescaler = 0;
     TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
@@ -536,9 +532,9 @@ SysTick_Handler(void) {
         /* Check if we need to change the color */
 //        if (fade_value == 0) {
 //            for (size_t i = 0; i < LED_CFG_COUNT; ++i) {
-//                leds_color_data[i * LED_CFG_BYTES_PER_LED + 0] = color_counter & 0x01 ? brightness : 0x00;
-//                leds_color_data[i * LED_CFG_BYTES_PER_LED + 1] = color_counter & 0x02 ? brightness : 0x00;
-//                leds_color_data[i * LED_CFG_BYTES_PER_LED + 2] = color_counter & 0x04 ? brightness : 0x00;
+//                leds_color_data[i * LED_CFG_BYTES_PER_LED + 0] = color_counter & 0x01 ? 0xFF : 0x00;
+//                leds_color_data[i * LED_CFG_BYTES_PER_LED + 1] = color_counter & 0x02 ? 0xFF : 0x00;
+//                leds_color_data[i * LED_CFG_BYTES_PER_LED + 2] = color_counter & 0x04 ? 0xFF : 0x00;
 //            }
 //        }
 
