@@ -33,7 +33,7 @@
  * \note            Values should be greater-or-equal than `1` and (advise) not higher than `8˙
  * \note            Value set to `6` means DMA TC or HT interrupts are triggered at each `180us at 800kHz tim update rate for RGB leds`
  */
-#define LED_CFG_LEDS_PER_DMA_IRQ      4
+#define LED_CFG_LEDS_PER_DMA_IRQ      16
 
 /**
  * \brief           Defines minimum number of "1-led-transmission-time" blocks
@@ -51,7 +51,7 @@
  *                      - Set it to `2*LED_CFG_LEDS_PER_DMA_IRQ` or higher
  *                      - Set it as multiplier of \ref LED_CFG_LEDS_PER_DMA_IRQ
  */
-#define LED_RESET_PRE_MIN_LED_CYCLES  10
+#define LED_RESET_PRE_MIN_LED_CYCLES  1
 
 /**
  * \brief           Number of "1-led-transmission-time" units to send all zeros
@@ -153,6 +153,8 @@ static void led_fill_led_pwm_data(size_t ledx, uint32_t* ptr);
 #define DBG_PIN_DATA_FILL_LOW
 #endif
 
+#define DBG_PIN_UPDATING_TOGGLE  LL_GPIO_TogglePin(GPIOA, LL_GPIO_PIN_0)
+
 /**
  * \brief           The application entry point
  */
@@ -198,11 +200,16 @@ main(void) {
 /**
  * \brief           Update sequence function,
  *                  called on each DMA half transfer or transfer complete complete event
- * \param[in]       tc: Set to `1` when function is called from DMA TC event, `0` when from HT event
+ * \param[in]       tc: Set to `1` when function is called from DMA TC event, `0` when from HT event  tc 0 indicates the lower (first) half of the data and 1 indicates the upper (Second) half of the buffer
  */
 static void
 led_update_sequence(uint8_t tc) {
     DBG_PIN_IRQ_HIGH;
+    if(tc)
+    {
+        DBG_PIN_IRQ_LOW;
+        DBG_PIN_IRQ_HIGH;
+    }
     if (!is_updating) {
         DBG_PIN_IRQ_LOW;
         return;
@@ -324,8 +331,8 @@ LED_TIM_CHANNEL_DMA_IRQHandler(void) {
 static void
 led_fill_led_pwm_data(size_t ledx, uint32_t* ptr) {
     const uint32_t arr = LED_TIM->ARR + 1;
-    const uint32_t pulse_low  = (1 * arr / 4) - 1;
-    const uint32_t pulse_high = (3 * arr / 4) - 1;
+    const uint32_t pulse_low  = (1 * arr / 4) - 1;  // 1/4 ARR is 19
+    const uint32_t pulse_high = (3 * arr / 4) - 1;  // 3/4 ARR is 59
 
     DBG_PIN_DATA_FILL_HIGH;
     if (ledx < LED_CFG_COUNT) {
@@ -369,11 +376,11 @@ led_start_transfer(void) {
      *
      * 2 steps are done
      * - Reset buffer to zero, for reset pulse (all zeros)
-     * - Manually set data for first round, in case reset lenght is set lower than size of array
+     * - Manually set data for first round, in case reset length is set lower than size of array
      */
     memset(dma_buffer, 0x00, sizeof(dma_buffer));
     for (uint32_t i = 0, index = LED_RESET_PRE_MIN_LED_CYCLES; index < 2 * LED_CFG_LEDS_PER_DMA_IRQ; ++index, ++i) {
-        led_fill_led_pwm_data(i, &dma_buffer[index * DMA_BUFF_ELE_LED_LEN]);
+        led_fill_led_pwm_data(i, &dma_buffer[index * DMA_BUFF_ELE_LED_LEN]);  // why can't this fill with half data of initial LEDs?
     }
 
     /*
@@ -383,7 +390,7 @@ led_start_transfer(void) {
      * - Memory length (number of elements) for 2 LEDs of data
      */
     LL_DMA_SetMode(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, LL_DMA_MODE_CIRCULAR);
-    LL_DMA_SetMemoryAddress(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, (uint32_t)dma_buffer);
+    LL_DMA_SetMemoryAddress(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, (uint32_t)dma_buffer);  //here
     LL_DMA_SetDataLength(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, DMA_BUFF_ELE_LEN);
 
     /* Clear flags, enable interrupts */
@@ -392,11 +399,16 @@ led_start_transfer(void) {
     LL_DMA_EnableIT_TC(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL);
     LL_DMA_EnableIT_HT(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL);
 
+	DBG_PIN_UPDATING_TOGGLE;
+	DBG_PIN_UPDATING_TOGGLE;
+
     /* Enable DMA, TIM channel and TIM counter */
     LL_DMA_EnableChannel(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL);
     LL_TIM_CC_EnableChannel(LED_TIM, LED_TIM_CHANNEL);
     LL_TIM_EnableCounter(LED_TIM);
 
+	DBG_PIN_UPDATING_TOGGLE;
+	DBG_PIN_UPDATING_TOGGLE;
     /* All the rest is happening in DMA interrupt from now on */
     return 1;
 }
@@ -442,7 +454,7 @@ tim_init(void) {
     LL_DMA_SetMemoryIncMode(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, LL_DMA_MEMORY_INCREMENT);
     LL_DMA_SetPeriphSize(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, LL_DMA_PDATAALIGN_WORD);
     LL_DMA_SetMemorySize(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, LL_DMA_MDATAALIGN_WORD);
-    LL_DMA_SetPeriphAddress(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, (uint32_t)LED_TIM_CHANNEL_DATA_REG);
+    LL_DMA_SetPeriphAddress(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, (uint32_t)LED_TIM_CHANNEL_DATA_REG);  // select CCR address as target
 
     /*
      * Set basic timer settings
@@ -452,7 +464,7 @@ tim_init(void) {
      */
     TIM_InitStruct.Prescaler = 0;
     TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-    TIM_InitStruct.Autoreload = 79;
+    TIM_InitStruct.Autoreload = 79;   //ARR is fixed 79
     TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
     LL_TIM_Init(LED_TIM, &TIM_InitStruct);
     LL_TIM_EnableARRPreload(LED_TIM);
