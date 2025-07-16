@@ -4,11 +4,6 @@
 #include <string.h>
 
 /**
- * \brief           Number of elements in statically allocated array
- */
-#define ARRAYSIZE(x)                  (sizeof(x) / sizeof((x)[0]))
-
-/**
  * \brief           Number of LEDs (or LED drivers in case of WS2811) connected to single strip in a row
  *
  * This value should be set to your defined length
