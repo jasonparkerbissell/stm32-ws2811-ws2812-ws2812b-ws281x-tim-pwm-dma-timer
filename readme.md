@@ -62,6 +62,9 @@ List of some useful STM32 DMA application notes
 - [AN5593 - How to use the GPDMA for STM32U575/585 microcontrollers](https://www.st.com/resource/en/application_note/an5593-how-to-use-the-gpdma-for-stm32u575585-microcontrollers-stmicroelectronics.pdf)
 - [AN5224 - STM32 DMAMUX: the DMA request router](https://www.st.com/resource/en/application_note/an5224-stm32-dmamux-the-dma-request-router-stmicroelectronics.pdf)
 - [STM32H7 DMA](https://www.st.com/content/ccc/resource/training/technical/product_training/group0/86/28/2f/08/4d/ad/49/61/STM32H7-System-Direct_memory_access_controller_DMA/files/STM32H7-System-Direct_memory_access_controller_DMA.pdf/_jcr_content/translations/en.STM32H7-System-Direct_memory_access_controller_DMA.pdf)
+- [RM0405 - STM32G0x0 reference manual](https://www.st.com/resource/en/reference_manual/rm0454-stm32g0x0-advanced-armbased-32bit-mcus-stmicroelectronics.pdf)
+- [AN4013 - Introduction to timers for STM32 MCUs](https://www.st.com/resource/en/application_note/an4013-introduction-to-timers-for-stm32-mcus-stmicroelectronics.pdf)
+- [AN4776 - General-purpose timer cookbook for STM32 microcontrollers](https://www.st.com/resource/en/application_note/an4776-generalpurpose-timer-cookbook-for-stm32-microcontrollers-stmicroelectronics.pdf)
 
 ## Memory requirement
 
