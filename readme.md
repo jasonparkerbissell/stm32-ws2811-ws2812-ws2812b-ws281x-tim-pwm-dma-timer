@@ -116,6 +116,8 @@ Remove `quad_calc()` and replace with simpler proportional square root value.
 
 Moving DBG_PIN_UPDATING to only cover the preparation logic to better represent bandwidth consumed by non-interrupt code.
 
+Move to pins, timers, and DMA channels and DMAMUX that exist on less-featured STM32 micros.  For example, STM32G030/050/070 only have DMA1 and STM32G030 is limited to 5 channels.
+
 ### Todo
 
-Move to pins, timers, and DMA channels and DMAMUX that exist on less-featured STM32 micros.  For example, STM32G030/050/070 only have DMA1 and STM32G030 is limited to 5 channels.
+Complete move and test of `dma_buffer[]` from datatype `uint32_t` to `uint8_t`.  This is accomplished by setting the memory pointer to `BYTE` alignment.  The peripheral pointer is updated to `HALFWORD` alignment since the CCR register, eventhough it is aligned to a 4byte address, has the upper 2 bytes reserved and should only be written as a uint16_t.  In this way, the dma_buffer can have byte timer values 19 and 59 without needing space for padding.  See reference section "9.4.6 DMA data width, alignment and endianness" in STM32 reference manual (rm0454) specifically "Table 35. Programmable data width and endian behavior (when PINC = MINC = 1)" indicates the upper byte of a halfword destination is filled with 0x00.  Unexpectedly though, the pointer handed to funcition LL_DMA_SetMemoryAddress() and it corollary HAL_TIM_PWM_Start_DMA() are of type uint32_t* which may be misleading.  Testing is needed to understand what would happen if the int8_t dma_buffer is not orginally aligned to a uint32_t address.
