@@ -75,7 +75,7 @@ static uint8_t leds_color_data[LED_CFG_BYTES_PER_LED * LED_CFG_COUNT];
  *
  * Type of variable should be unsigned 32-bit, to satisfy TIM that is 32-bit timer
  */
-static uint32_t dma_buffer[(2) * (LED_CFG_LEDS_PER_DMA_IRQ) * (LED_CFG_BYTES_PER_LED * 8)];
+static uint8_t dma_buffer[(2) * (LED_CFG_LEDS_PER_DMA_IRQ) * (LED_CFG_BYTES_PER_LED * 8)];
 
 /* Used macros */
 
@@ -385,7 +385,7 @@ led_start_transfer(void) {
      * - Memory length (number of elements) for 2 LEDs of data
      */
     LL_DMA_SetMode(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, LL_DMA_MODE_CIRCULAR);
-    LL_DMA_SetMemoryAddress(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, (uint32_t)dma_buffer);  //here
+    LL_DMA_SetMemoryAddress(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, (uint32_t)dma_buffer);  //dma_buffer consumed here,  the datatype of dma_buffer can be uint8, while th epointer passed still has to be uint32_t*
     LL_DMA_SetDataLength(LED_TIM_CHANNEL_DMA, LED_TIM_CHANNEL_DMA_CHANNEL, DMA_BUFF_ELE_LEN);
 
     /* Clear flags, enable interrupts */
